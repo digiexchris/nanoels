@@ -245,6 +245,11 @@ long lcdHashLine2 = LCD_HASH_INITIAL;
 long lcdHashLine3 = LCD_HASH_INITIAL;
 bool splashScreen = false;
 
+#include <unordered_map>
+#include <memory>
+#include "axis.h"
+#include "Modes/Async.h"
+#include "Modes/Modes.h"
 #include <Preferences.h>
 
 #include <Adafruit_TCA8418.h>
@@ -285,9 +290,8 @@ int savedStarts = 0; // starts saved in Preferences
 int nextStarts = starts; // number of starts that should be used asap
 bool nextStartsFlag = false; // whether nextStarts requires attention
 
-struct Axis {
-  SemaphoreHandle_t mutex;
 
+<<<<<<< Updated upstream
   char name;
   bool active;
   bool rotational;
@@ -406,6 +410,10 @@ void initAxis(Axis* a, char name, bool active, bool rotational, float motorSteps
 Axis z;
 Axis x;
 Axis a1;
+=======
+Axis* z;
+Axis* x;
+>>>>>>> Stashed changes
 
 unsigned long saveTime = 0; // micros() of the previous Prefs write
 unsigned long spindleEncTime = 0; // micros() of the previous spindle update
@@ -435,25 +443,36 @@ unsigned long shownRpmTime = 0; // micros() when shownRpm was set
 long moveStep = 0; // thousandth of a mm
 long savedMoveStep = 0; // moveStep saved in Preferences
 
+<<<<<<< Updated upstream
 volatile int mode = -1; // mode of operation (ELS, multi-start ELS, asynchronous)
 int nextMode = 0; // mode value that should be applied asap
 bool nextModeFlag = false; // whether nextMode needs attention
 int savedMode = -1; // mode saved in Preferences
+=======
+std::unordered_map<Mode::Type, std::unique_ptr<Mode>> modes = {
+  {Mode::Type::NORMAL,std::make_unique<Mode>() },
+  {Mode::Type::TURN,std::make_unique<Turn>() },
+  {Mode::Type::FACE,std::make_unique<Face>() },
+  {Mode::Type::CUT,std::make_unique<Cut>() },
+  {Mode::Type::CONE,std::make_unique<Cone>() },
+  {Mode::Type::THREAD,std::make_unique<Thread>() },
+  {Mode::Type::ELIPSE,std::make_unique<Elipse>() },
+};
+
+Mode::Type currentMode = Mode::Type::NORMAL;
+ ; // mode of operation (ELS, multi-start ELS, asynchronous)
+//todo probably doesn't need to be a global //Mode* savedMode = new Normal(); // mode saved in Preferences
+>>>>>>> Stashed changes
 
 int measure = MEASURE_METRIC; // Whether to show distances in inches
 int savedMeasure = MEASURE_METRIC; // measure value saved in Preferences
 
-float coneRatio = 1; // In cone mode, how much X moves for 1 step of Z
-float savedConeRatio = 0; // value of coneRatio saved in Preferences
-float nextConeRatio = 0; // coneRatio that should be applied asap
-bool nextConeRatioFlag = false; // whether nextConeRatio requires attention
-
-int turnPasses = 3; // In turn mode, how many turn passes to make
-int savedTurnPasses = 0; // value of turnPasses saved in Preferences
-
 long setupIndex = 0; // Index of automation setup step
+<<<<<<< Updated upstream
 bool auxForward = true; // True for external, false for external thread
 bool savedAuxForward = false; // value of auxForward saved in Preferences
+=======
+>>>>>>> Stashed changes
 
 long opIndex = 0; // Index of an automation operation
 bool opIndexAdvanceFlag = false; // Whether user requested to move to the next pass
@@ -539,37 +558,13 @@ byte customCharLimLeftRight[] = {
   B00000
 };
 
-String gcodeCommand = "";
-long gcodeFeedDuPerSec = GCODE_FEED_DEFAULT_DU_SEC;
-bool gcodeInitialized = false;
-bool gcodeAbsolutePositioning = true;
-bool gcodeInBrace = false;
-bool gcodeInSemicolon = false;
+
 
 hw_timer_t *async_timer = timerBegin(0, 80, true);
 bool timerAttached = false;
 
-int getApproxRpm() {
-  unsigned long t = micros();
-  if (t > spindleEncTime + 100000) {
-    // RPM less than 10.
-    return 0;
-  }
-  if (t < shownRpmTime + RPM_UPDATE_INTERVAL_MICROS) {
-    // Don't update RPM too often to avoid flickering.
-    return shownRpm;
-  }
-  int rpm = 0;
-  if (spindleEncTimeDiffBulk > 0) {
-    rpm = 60000000 / spindleEncTimeDiffBulk;
-    if (abs(rpm - shownRpm) < (rpm < 1000 ? 2 : 5)) {
-      // Don't update RPM with insignificant differences.
-      rpm = shownRpm;
-    }
-  }
-  return rpm;
-}
 
+<<<<<<< Updated upstream
 bool stepperIsRunning(Axis* a) {
   return micros() - a->stepStartUs < 50000;
 }
@@ -611,37 +606,13 @@ int printDegrees(long degrees10000) {
   count += lcd.print(char(223)); // degree symbol
   return count;
 }
+=======
 
-int printDupr(long value) {
-  int count = 0;
-  if (measure != MEASURE_TPI) {
-    count += printDeciMicrons(value, 5);
-  } else {
-    float tpi = 254000.0 / value;
-    if (abs(tpi - round(tpi)) < TPI_ROUND_EPSILON) {
-      count += lcd.print(int(round(tpi)));
-    } else {
-      int tpi100 = round(tpi * 100);
-      int points = 0;
-      if ((tpi100 % 10) != 0) {
-        points = 2;
-      } else if ((tpi100 % 100) != 0) {
-        points = 1;
-      }
-      count += lcd.print(tpi, points);
-    }
-    count += lcd.print("tpi");
-  }
-  return count;
-}
+>>>>>>> Stashed changes
 
-void printLcdSpaces(int charIndex) {
-  // Our screen has width 20.
-  for (; charIndex < 20; charIndex++) {
-    lcd.print(" ");
-  }
-}
 
+
+<<<<<<< Updated upstream
 long stepsToDu(Axis* a, long steps) {
   return round(steps * a->screwPitch / a->motorSteps);
 }
@@ -701,9 +672,12 @@ int printNoTrailing0(float value) {
   }
   return lcd.print(value, points);
 }
+=======
+
+>>>>>>> Stashed changes
 
 bool needZStops() {
-  return mode == MODE_TURN || mode == MODE_FACE || mode == MODE_THREAD || mode == MODE_ELLIPSE;
+  return mode->GetType() == Mode::Type::TURN || mode == MODE_FACE || mode == MODE_THREAD || mode == MODE_ELLIPSE;
 }
 
 bool isPassMode() {
@@ -717,9 +691,10 @@ int getLastSetupIndex() {
 }
 
 Axis* getPitchAxis() {
-  return mode == MODE_FACE ? &x : &z;
+  return mode->GetMode() == Mode::Type::FACE ? x : z;
 }
 
+<<<<<<< Updated upstream
 long getPassModeZStart() {
   if (mode == MODE_TURN || mode == MODE_THREAD) return dupr > 0 ? z.rightStop : z.leftStop;
   if (mode == MODE_FACE) return auxForward ? z.rightStop : z.leftStop;
@@ -999,6 +974,9 @@ void IRAM_ATTR pulse2Enc() {
     pulse2Delta += (DREAD(A23) ? -1 : 1) * (PULSE_2_INVERT ? -1 : 1);
   }
 }
+=======
+
+>>>>>>> Stashed changes
 
 void setAsyncTimerEnable(bool value) {
   if (value) {
@@ -1008,6 +986,7 @@ void setAsyncTimerEnable(bool value) {
   }
 }
 
+<<<<<<< Updated upstream
 void taskDisplay(void *param) {
   while (emergencyStop == ESTOP_NONE) {
     updateDisplay();
@@ -1130,6 +1109,9 @@ int getAndResetPulses(Axis* a) {
   }
   return delta;
 }
+=======
+
+>>>>>>> Stashed changes
 
 void taskMoveZ(void *param) {
   while (emergencyStop == ESTOP_NONE) {
@@ -1187,8 +1169,19 @@ void taskMoveZ(void *param) {
           DELAY(200);
         }
       } while (left ? buttonLeftPressed : buttonRightPressed);
+<<<<<<< Updated upstream
+=======
+      if (mode == MODE_CONE) {
+        if (xSemaphoreTake(motionMutex, 100) != pdTRUE) { //is this detecting if motion is happening?
+          setEmergencyStop(ESTOP_MARK_ORIGIN);
+        } else {
+          markOrigin();
+          xSemaphoreGive(motionMutex);
+        }
+      }
+>>>>>>> Stashed changes
     } else {
-      z.speedMax = getStepMaxSpeed(&z);
+      z->speedMax = getStepMaxSpeed(&z);
       int delta = 0;
       do {
         float fractionalDelta = (pulseDelta == 0 ? moveStep * sign / z.screwPitch : pulseDelta / PULSE_PER_REVOLUTION) * z.motorSteps + z.fractionalPos;
@@ -1333,6 +1326,7 @@ void taskMoveA1(void *param) {
   vTaskDelete(NULL);
 }
 
+<<<<<<< Updated upstream
 void taskGcode(void *param) {
   while (emergencyStop == ESTOP_NONE) {
     if (mode != MODE_GCODE) {
@@ -1407,14 +1401,10 @@ void taskGcode(void *param) {
   }
   vTaskDelete(NULL);
 }
+=======
+>>>>>>> Stashed changes
 
-void taskAttachInterrupts(void *param) {
-  // Attaching interrupt on core 0 to have more time on core 1 where axes are moved.
-  attachInterrupt(digitalPinToInterrupt(ENC_A), spinEnc, FALLING);
-  if (PULSE_1_USE) attachInterrupt(digitalPinToInterrupt(A12), pulse1Enc, CHANGE);
-  if (PULSE_2_USE) attachInterrupt(digitalPinToInterrupt(A22), pulse2Enc, CHANGE);
-  vTaskDelete(NULL);
-}
+
 
 void setEmergencyStop(int kind) {
   emergencyStop = kind;
@@ -1468,9 +1458,14 @@ void setup() {
     pref.putInt(PREF_VERSION, PREFERENCES_VERSION);
   }
 
+<<<<<<< Updated upstream
   initAxis(&z, NAME_Z, true, false, MOTOR_STEPS_Z, SCREW_Z_DU, SPEED_START_Z, SPEED_MANUAL_MOVE_Z, ACCELERATION_Z, INVERT_Z, NEEDS_REST_Z, MAX_TRAVEL_MM_Z, BACKLASH_DU_Z, Z_ENA, Z_DIR, Z_STEP);
   initAxis(&x, NAME_X, true, false, MOTOR_STEPS_X, SCREW_X_DU, SPEED_START_X, SPEED_MANUAL_MOVE_X, ACCELERATION_X, INVERT_X, NEEDS_REST_X, MAX_TRAVEL_MM_X, BACKLASH_DU_X, X_ENA, X_DIR, X_STEP);
   initAxis(&a1, NAME_A1, ACTIVE_A1, ROTARY_A1, MOTOR_STEPS_A1, SCREW_A1_DU, SPEED_START_A1, SPEED_MANUAL_MOVE_A1, ACCELERATION_A1, INVERT_A1, NEEDS_REST_A1, MAX_TRAVEL_MM_A1, BACKLASH_DU_A1, A11, A12, A13);
+=======
+  z = new Axis('z', MOTOR_STEPS_Z, SCREW_Z_DU, SPEED_START_Z, SPEED_MANUAL_MOVE_Z, ACCELERATION_Z, INVERT_Z, NEEDS_REST_Z, MAX_TRAVEL_MM_Z, BACKLASH_DU_Z, Z_ENA, Z_DIR, Z_STEP);
+  x = new Axis('x', MOTOR_STEPS_X, SCREW_X_DU, SPEED_START_X, SPEED_MANUAL_MOVE_X, ACCELERATION_X, INVERT_X, NEEDS_REST_X, MAX_TRAVEL_MM_X, BACKLASH_DU_X, X_ENA, X_DIR, X_STEP);
+>>>>>>> Stashed changes
 
   isOn = false;
   savedDupr = dupr = pref.getLong(PREF_DUPR);
@@ -1608,26 +1603,7 @@ bool saveIfChanged() {
   return true;
 }
 
-void markAxisOrigin(Axis* a) {
-  bool hasSemaphore = xSemaphoreTake(a->mutex, 10) == pdTRUE;
-  if (!hasSemaphore) {
-    beepFlag = true;
-  }
-  if (a->leftStop != LONG_MAX) {
-    a->leftStop -= a->pos;
-  }
-  if (a->rightStop != LONG_MIN) {
-    a->rightStop -= a->pos;
-  }
-  a->motorPos -= a->pos;
-  a->originPos += a->pos;
-  a->pos = 0;
-  a->fractionalPos = 0;
-  a->pendingPos = 0;
-  if (hasSemaphore) {
-    xSemaphoreGive(a->mutex);
-  }
-}
+
 
 void zeroSpindlePos() {
   spindlePos = 0;
@@ -1641,9 +1617,14 @@ void zeroSpindlePos() {
 // result in stepper rushing across the lathe to the new position.
 // Must be called while holding motionMutex.
 void markOrigin() {
+<<<<<<< Updated upstream
   markAxisOrigin(&z);
   markAxisOrigin(&x);
   markAxisOrigin(&a1);
+=======
+  z->markAxisOrigin();
+  x->markAxisOrigin();
+>>>>>>> Stashed changes
   zeroSpindlePos();
 }
 
@@ -1792,6 +1773,7 @@ void applyConeRatio() {
   markOrigin();
 }
 
+<<<<<<< Updated upstream
 void reset() {
   z.leftStop = LONG_MAX;
   z.nextLeftStopFlag = false;
@@ -1829,6 +1811,22 @@ void reset() {
   showAngle = false;
   setConeRatio(1);
   auxForward = true;
+=======
+
+
+// Called when left/right stop restriction is removed while we're on it.
+// Prevents stepper from rushing to a position far away by waiting for the right
+// spindle position and starting smoothly.
+void setOutOfSync(Axis* a) {
+  if (!isOn || mode == MODE_ASYNC) {
+    return;
+  }
+  spindlePosSync = spindleModulo(spindlePos - spindleFromPos(a, a->pos));
+#ifdef DEBUG
+  Serial.print("spindlePosSync ");
+  Serial.println(spindlePosSync);
+#endif
+>>>>>>> Stashed changes
 }
 
 long normalizePitch(long pitch) {
@@ -1843,6 +1841,7 @@ long normalizePitch(long pitch) {
   return round(pitch / scale) * scale;
 }
 
+<<<<<<< Updated upstream
 void buttonPlusMinusPress(bool plus) {
   // Mutex is aquired in setDupr() and setStarts().
   bool minus = !plus;
@@ -1907,6 +1906,8 @@ void buttonOnOffPress(bool on) {
     setIsOnFromTask(on);
   }
 }
+=======
+>>>>>>> Stashed changes
 
 void setIsOnFromTask(bool on) {
   nextIsOn = on;
@@ -1936,19 +1937,18 @@ void setIsOnFromLoop(bool on) {
   }
 }
 
+<<<<<<< Updated upstream
 void buttonOffRelease() {
   if (millis() - resetMillis > 3000) {
     reset();
     splashScreen = true;
   }
 }
+=======
+>>>>>>> Stashed changes
 
-void setLeftStop(Axis* a, long value) {
-  // Can't apply changes right away since we might be in the middle of motion logic.
-  a->nextLeftStop = value;
-  a->nextLeftStopFlag = true;
-}
 
+<<<<<<< Updated upstream
 void leaveStop(Axis* a, long oldStop) {
   if (mode == MODE_CONE) {
     // To avoid rushing to a far away position if standing on limit.
@@ -1988,19 +1988,24 @@ void buttonLeftStopPress(Axis* a) {
 
 void buttonRightStopPress(Axis* a) {
   setRightStop(a, a->rightStop == LONG_MIN ? a->pos : LONG_MIN);
-}
+=======
 
-void buttonDisplayPress() {
-  if (!showAngle && !showTacho) {
-    showAngle = true;
-  } else if (showAngle) {
-    showAngle = false;
-    showTacho = true;
-  } else {
-    showTacho = false;
+bool allowMultiStartAdvance = false;
+
+long getAsyncMovePos(int sign) {
+  long posDiff = sign * MOTOR_STEPS_Z * abs(dupr) / SCREW_Z_DU / 5;
+  long posCopy = z.pos;
+  if (posDiff > 0 && z.leftStop != LONG_MAX && (posCopy + posDiff) > z.leftStop) {
+    return z.leftStop;
+  } else if (posDiff < 0 && z.rightStop != LONG_MIN && (posCopy + posDiff) < z.rightStop) {
+    return z.rightStop;
   }
+  return posCopy + posDiff;
+>>>>>>> Stashed changes
 }
 
+
+<<<<<<< Updated upstream
 void buttonMoveStepPress() {
   if (measure == MEASURE_METRIC) {
     if (moveStep == MOVE_STEP_1) {
@@ -2045,21 +2050,14 @@ void buttonModePress() {
     setModeFromTask(MODE_NORMAL);
   }
 }
+=======
 
-void buttonMeasurePress() {
-  if (measure == MEASURE_METRIC) {
-    setMeasure(MEASURE_INCH);
-  } else if (measure == MEASURE_INCH) {
-    setMeasure(MEASURE_TPI);
-  } else {
-    setMeasure(MEASURE_METRIC);
-  }
-}
 
-void buttonReversePress() {
-  setDupr(-dupr);
-}
+>>>>>>> Stashed changes
 
+
+
+<<<<<<< Updated upstream
 void numpadPress(int digit) {
   if (!inNumpad) {
     numpadIndex = 0;
@@ -2480,6 +2478,8 @@ void moveAxis(Axis* a) {
     xSemaphoreGive(a->mutex);
   }
 }
+=======
+>>>>>>> Stashed changes
 
 void modeGearbox() {
   if (z.movingManually) {
@@ -2772,12 +2772,15 @@ void modeEllipse(Axis* main, Axis* aux) {
   }
 }
 
+<<<<<<< Updated upstream
 long mmOrInchToAbsolutePos(Axis* a, float mmOrInch) {
   long scaleToDu = measure == MEASURE_METRIC ? 10000 : 254000;
   long part1 = a->gcodeRelativePos;
   long part2 = round(mmOrInch * scaleToDu / a->screwPitch * a->motorSteps);
   return part1 + part2;
 }
+=======
+>>>>>>> Stashed changes
 
 String getValueString(const String& command, char letter) {
   int index = command.indexOf(letter);
@@ -2948,10 +2951,14 @@ void discountFullSpindleTurns() {
   // This allows to avoid waiting when spindle direction reverses
   // and reduces the chance of the skipped stepper steps since
   // after a reverse the spindle starts slow.
+<<<<<<< Updated upstream
   if (dupr != 0 && !stepperIsRunning(&z) && (mode == MODE_NORMAL || mode == MODE_CONE)) {
+=======
+  if (dupr != 0 && !z->isRunning(z) && mode != MODE_FACE && mode != MODE_ELLIPSE) {
+>>>>>>> Stashed changes
     int spindlePosDiff = 0;
     if (z.pos == z.rightStop) {
-      long stopSpindlePos = spindleFromPos(&z, z.rightStop);
+      long stopSpindlePos = z->spindleFromPos(z, z.rightStop);
       if (dupr > 0) {
         if (spindlePos < stopSpindlePos - ENCODER_STEPS_INT) {
           spindlePosDiff = ENCODER_STEPS_INT;
@@ -2962,7 +2969,7 @@ void discountFullSpindleTurns() {
         }
       }
     } else if (z.pos == z.leftStop) {
-      long stopSpindlePos = spindleFromPos(&z, z.leftStop);
+      long stopSpindlePos = z->spindleFromPos(z, z.leftStop);
       if (dupr > 0) {
         if (spindlePos > stopSpindlePos + ENCODER_STEPS_INT) {
           spindlePosDiff = -ENCODER_STEPS_INT;
@@ -2980,6 +2987,7 @@ void discountFullSpindleTurns() {
   }
 }
 
+<<<<<<< Updated upstream
 void processSpindlePosDelta() {
   if (spindlePosDelta == 0) {
     return;
@@ -3025,6 +3033,8 @@ void processSpindlePosDelta() {
     }
   }
 }
+=======
+>>>>>>> Stashed changes
 
 // Apply changes requested by the keyboard thread.
 void applySettings() {
@@ -3081,26 +3091,35 @@ void loop() {
   if (xSemaphoreTake(motionMutex, 1) != pdTRUE) {
     return;
   }
+  //can speed the loop up by making this a low priority task, every second or so
   applySettings();
   processSpindlePosDelta();
   discountFullSpindleTurns();
   if (!isOn || dupr == 0 || spindlePosSync != 0) {
+
+
     // None of the modes work.
-  } else if (mode == MODE_NORMAL) {
-    modeGearbox();
-  } else if (mode == MODE_TURN) {
-    modeTurn(&z, &x);
-  } else if (mode == MODE_FACE) {
-    modeTurn(&x, &z);
-  } else if (mode == MODE_CUT) {
-    modeCut();
-  } else if (mode == MODE_CONE) {
-    modeCone();
-  } else if (mode == MODE_THREAD) {
-    modeTurn(&z, &x);
-  } else if (mode == MODE_ELLIPSE) {
-    modeEllipse(&z, &x);
+
+
+  } else {
+    mode
   }
+  
+  //  if (mode == MODE_NORMAL) {
+  //   modeGearbox();
+  // } else if (mode == MODE_TURN) {
+  //   modeTurn(&z, &x);
+  // } else if (mode == MODE_FACE) {
+  //   modeTurn(&x, &z);
+  // } else if (mode == MODE_CUT) {
+  //   modeCut();
+  // } else if (mode == MODE_CONE) {
+  //   modeCone();
+  // } else if (mode == MODE_THREAD) {
+  //   modeTurn(&z, &x);
+  // } else if (mode == MODE_ELLIPSE) {
+  //   modeEllipse(&z, &x);
+  // }
   moveAxis(&z);
   moveAxis(&x);
   if (ACTIVE_A1) moveAxis(&a1);
